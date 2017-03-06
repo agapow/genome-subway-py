@@ -8,6 +8,8 @@ Based on: https://github.com/wolfib/sequenceTubeMap
 
 import json
 
+import testdata
+
 
 ### CONSTANTS & DEFINES
 
@@ -62,58 +64,100 @@ def draw_subway():
     print (paths[0])
     subway = Subway (nodes, paths)
     
-class Subway (object):
-    def __init__ (self, nodes, tracks):
-        self.nodes = nodes
-        self.tracks = tracks
+    
+def vg2subway_json (vg_json):
+    """
+    Take a vg graph represented as JSON and map it to the internal format used here.
+    
+    Args:
+        vg_json: data from a vg file as de-serialised JSON
         
-        # build a mapping from name to node
+    Returns:
+        Even more JSON.
+        
+    """
+    # TODO: extract name and any other useful info?
+    
+    data = {}
+    
+    nodes = []
+    for n in vg_json['node']:
+        nodes.append ({
+        'name': n['id'],
+        'seq_len': len (n['sequence']),
+        'seq': n['sequence'],
+        })
+    data['nodes'] = nodes
+    
+    tracks = []
+    for i, p in enumerate (vg_json['path']):
+        sequence = []
+        is_completely_reverse = True
+        if p['position'].get ('is_reverse', False):
+            sequence.append ('-' + p['position']['node_id']
+        else:
+            sequence.append (p['position']['node_id'])
+            is_completely_reverse = False
+        if is_completely_reverse:
+            sequence.reverse()
+            sequence = [s[1:] for in s in sequence]
+        tracks.append (sequence)
+    data['tracks'] = tracks
+    
+    return data
+        
+            
+
+      
+class Subway (object):
+    """
+    Use to contain the data for subway and useful accessors.
+    
+    Can we put the drawing outside and avoid recreating object 
+    """
+    def __init__ (self, subway_json):
+        # setting
+        merge_nodes = False
+        node_width = 'LINEAR'
+        
+        # setup nodes and tracks
+        self.nodes = subway_json['nodes']
+        self.tracks = subway_json['tracks']
+                
+        # build a mapping from node name to index
         self.nodeMap = {n['name']:i for n, i in permutation (nodes)}
         
-        # each node needs to know what could be the next and previous nodes
+        # each node needs to know which nodes could be the next and previous
         for n in self.nodes:
-            n['successors'] = []
-            n['predecessors'] = []
+            n['next'] = []
+            n['prev'] = []
         for t in self.tracks:
             mod_seq = uninvert (track['sequence'])
             for x in range (len (mod_seq) - 1):
-                curr_node_id = mod_seq[i]
-                curr_node_index = self.nodeMap[curr_node_id]
-                next_node_id = mod_seq[i+1]
-                
-                
-                
+                curr_node_name = mod_seq[i]
+                next_node_name = mod_seq[i+1]
+                curr_node = self.nodes[self.nodeMap[curr_node_name]]
+                if next_node_name not in curr_node['next']:
+                    curr_node['next'].push (next_node_name)
+                prev_node = self.nodes[self.nodeMap[prev_node_name]]
+                if curr_node_name not in next_node['prev']:
+                    next_node['prev'].push (curr_node_name)                    
+        
 
-    tracks.forEach(function(track) {
-      for(i = 0; i < modifiedSequence.length - 1; i++) {
-        currentNode = nodes[nodeMap.get(modifiedSequence[i])];
-        followerID = modifiedSequence[i + 1];
-        if (currentNode.successors.indexOf(followerID) === -1) {
-          currentNode.successors.push(followerID);
-        }
-        if (nodes[nodeMap.get(followerID)].predecessors.indexOf(modifiedSequence[i]) === -1) {
-          nodes[nodeMap.get(followerID)].predecessors.push(modifiedSequence[i]);
-        }
 
   
-  function generateNodeWidth(nodes) {
-    switch (nodeWidthOption) {
-      case 1:
-        nodes.forEach(function (node) {
-          if (node.hasOwnProperty('sequenceLength')) node.width = (1 + Math.log(node.sequenceLength) / Math.log(2));
-        });
-        break;
-      case 2:
-        nodes.forEach(function (node) {
-          if (node.hasOwnProperty('sequenceLength')) node.width = (1 + Math.log(node.sequenceLength) / Math.log(10));
-        });
-        break;
-      default:
-        nodes.forEach(function (node) {
-          if (node.hasOwnProperty('sequenceLength')) node.width = node.sequenceLength;
-        });
-    }
-  }
+    def set_node_width (self, width_optn='LINEAR'):
+        if (width_optn == 'LOGN'):
+            width_fn = lambda n_len: (1 + math.log (n_len)) / math.log (2)
+        elif (width_optn == 'LOG10'):
+            width_fn = lambda n_len: (1 + math.log (n_len)) / math.log (10)
+        elif (width_optn == 'LINEAR'):
+            width_fn = lambda n_len: n_len
+        for n in self.nodes:
+            n['width'] = width_fn (len (n['sequence']))
+          
+          
+
 
            
     ## Accessors
