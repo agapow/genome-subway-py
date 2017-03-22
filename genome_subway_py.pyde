@@ -58,6 +58,7 @@ def draw_header():
     textAlign(CENTER)
     text ("Hello Strings!", width/2, TITLE_FONT_SIZE*1.5)    
 
+
 def draw_subway():
     nodes = graph_json['node']
     paths = graph_json['path']
@@ -109,12 +110,13 @@ def vg2subway_json (vg_json):
             
 
       
-class Subway (object):
+class GenomeGraph (object):
     """
     Use to contain the data for subway and useful accessors.
     
-    Can we put the drawing outside and avoid recreating object 
     """
+    # XXX: can we put the drawing outside and use this object just to store data?
+
     def __init__ (self, subway_json):
         # setting
         merge_nodes = False
@@ -166,6 +168,25 @@ class Subway (object):
     
      def track_cnt (self):
         return len (self.nodes)
+    
+    
+class SubwayDrawing (object):
+    def __init__ (self, grf):
+        self.grf = grf
+        self.set_node_widths()
+ 
+    def set_node_width (self, width_optn='LINEAR'):
+        self.node_widths = {}
+        if (width_optn == 'LOGN'):
+            width_fn = lambda n_len: (1 + math.log (n_len)) / math.log (2)
+        elif (width_optn == 'LOG10'):
+            width_fn = lambda n_len: (1 + math.log (n_len)) / math.log (10)
+        elif (width_optn == 'LINEAR'):
+            width_fn = lambda n_len: n_len
+        for n in self.grf.nodes:
+            self.node_widths[n] = width_fn (len (n['sequence']))
+            
+                          
     
     
 ### END ###
